@@ -73,4 +73,8 @@ class DatabaseService {
       whereArgs: [id],
     );
   }
+
+  static Future<void> deleteAllPlans() async {
+    await db.delete(planItemTable);
+  }
 }

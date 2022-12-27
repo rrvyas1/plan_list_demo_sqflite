@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:plan_list_demo_sqflite/models/plan_data.dart';
 import 'package:plan_list_demo_sqflite/services/database_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:sqflite/sqflite.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,50 +121,104 @@ class _SqfLiteDemoState extends State<SqfLiteDemo> {
       body: FutureBuilder(
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) => Container(
-                // height: 20,
-                // color: Colors.red,
-                margin: const EdgeInsets.only(bottom: 20),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Text(snapshot.data![index].planDuration),
-                        Text(snapshot.data![index].planType)
-                      ],
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) => Container(
+                      // height: 20,
+                      // color: Colors.red,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Text(snapshot.data![index].planDuration),
+                              Text(snapshot.data![index].planType)
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () async {
+                                  await DatabaseService.updatePlan(PlanItem(
+                                      id: snapshot.data![index].id,
+                                      planDuration: 'planDuration',
+                                      planType: 'planType'));
+                                  setState(() {});
+                                },
+                                child: const Text('Edit'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () async {
+                                  print(
+                                      '==============>${snapshot.data![index].id!}<==============');
+
+                                  await DatabaseService.deletePlan(
+                                      snapshot.data![index].id!);
+                                  snapshot.data!.removeAt(index);
+                                  setState(() {});
+                                },
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () async {
-                            await DatabaseService.updatePlan(PlanItem(
-                                id: snapshot.data![index].id,
-                                planDuration: 'planDuration',
-                                planType: 'planType'));
-                            setState(() {});
-                          },
-                          child: const Text('Edit'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () async {
-                            snapshot.data!.removeAt(index);
-                            await DatabaseService.deletePlan(index);
-                            // await PlanList.deletePlan(
-                            //   index,
-                            // );
-                            setState(() {});
-                          },
-                          child: const Text('Delete'),
-                        ),
-                      ],
+                  ),
+                ),
+                Row(
+                  children: [
+                    MaterialButton(
+                      onPressed: () async {
+                        await DatabaseService.deleteAllPlans();
+                        setState(() {});
+                      },
+                      child: const Text('DeleteAll Data'),
+                    ),
+                    MaterialButton(
+                      onPressed: () async {
+                        final dbFolder = await getDatabasesPath();
+                        File source1 = File('$dbFolder/doggie_database.db');
+
+                        Directory copyTo =
+                            Directory("storage/emulated/0/Sqlite Backup");
+                        if ((await copyTo.exists())) {
+                          // print("Path exist");
+                          var status = await Permission.storage.status;
+                          if (!status.isGranted) {
+                            await Permission.storage.request();
+                          }
+                        } else {
+                          print("not exist");
+                          if (await Permission.storage.request().isGranted) {
+                            // Either the permission was already granted before or the user just granted it.
+                            await copyTo.create();
+                          } else {
+                            print('Please give permission');
+                          }
+                        }
+
+                        String newPath = "${copyTo.path}/doggie_database.db";
+                        await source1.copy(newPath);
+
+                        setState(() {
+                          // message = 'Successfully Copied DB';
+                        });
+                      },
+                      child: const Text('Backup Database'),
+                    ),
+                    MaterialButton(
+                      onPressed: () async {},
+                      child: const Text('Restore Database'),
                     ),
                   ],
                 ),
-              ),
+              ],
             );
           } else if (snapshot.hasError) {
             return const Center(
