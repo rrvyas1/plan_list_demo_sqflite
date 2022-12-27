@@ -5,6 +5,8 @@ import 'package:plan_list_demo_sqflite/models/plan_data.dart';
 import 'package:plan_list_demo_sqflite/services/database_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'package:file_picker/file_picker.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,74 +51,77 @@ class _SqfLiteDemoState extends State<SqfLiteDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) {
-              return StatefulBuilder(builder: (context, setState) {
-                return SimpleDialog(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      child: SizedBox(
-                        height: 180,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextField(
-                              controller: planDurationController,
-                              decoration: InputDecoration(
-                                  label: const Text('Plan Duration'),
-                                  border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10))),
-                            ),
-                            const SizedBox(
-                              height: 10,
-                            ),
-                            TextField(
-                              controller: planTypeController,
-                              decoration: InputDecoration(
-                                  label: const Text('Plan Type'),
-                                  border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10))),
-                            ),
-                            const SizedBox(
-                              height: 10,
-                            ),
-                            ElevatedButton.icon(
-                                onPressed: () async {
-                                  await DatabaseService.insertPlan(
-                                    PlanItem(
-                                      planDuration: planDurationController.text,
-                                      planType: planTypeController.text,
-                                    ),
-                                  );
-                                  setState(() {});
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 40.0,right: 20),
+        child: FloatingActionButton.extended(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) {
+                return StatefulBuilder(builder: (context, setState) {
+                  return SimpleDialog(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        child: SizedBox(
+                          height: 180,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: planDurationController,
+                                decoration: InputDecoration(
+                                    label: const Text('Plan Duration'),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10))),
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              TextField(
+                                controller: planTypeController,
+                                decoration: InputDecoration(
+                                    label: const Text('Plan Type'),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10))),
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await DatabaseService.insertPlan(
+                                      PlanItem(
+                                        planDuration: planDurationController.text,
+                                        planType: planTypeController.text,
+                                      ),
+                                    );
+                                    setState(() {});
 
-                                  WidgetsBinding.instance
-                                      .addPostFrameCallback((timeStamp) {
-                                    Navigator.pop(context);
-                                  });
-                                },
-                                icon: const Icon(Icons.save),
-                                label: const Text('Save')),
-                          ],
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((timeStamp) {
+                                      Navigator.pop(context);
+                                    });
+                                  },
+                                  icon: const Icon(Icons.save),
+                                  label: const Text('Save')),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              });
-            },
-          );
-        },
-        label: const Text('Add'),
-        icon: const Icon(Icons.add),
+                    ],
+                  );
+                });
+              },
+            );
+          },
+          label: const Text('Add'),
+          icon: const Icon(Icons.add),
+        ),
       ),
       body: FutureBuilder(
         builder: (context, snapshot) {
@@ -173,17 +178,25 @@ class _SqfLiteDemoState extends State<SqfLiteDemo> {
                 ),
                 Row(
                   children: [
+                    // MaterialButton(
+                    //   onPressed: () async {
+                    //     await DatabaseService.deleteAllPlans();
+                    //     setState(() {});
+                    //   },
+                    //   child: const Text('DeleteAll Data'),
+                    // ),
                     MaterialButton(
                       onPressed: () async {
-                        await DatabaseService.deleteAllPlans();
-                        setState(() {});
+                        var databasesPath = await getDatabasesPath();
+                        var dbPath = join(databasesPath, 'localDb.db');
+                        await deleteDatabase(dbPath);
                       },
-                      child: const Text('DeleteAll Data'),
+                      child: const Text('Delete Database'),
                     ),
                     MaterialButton(
                       onPressed: () async {
                         final dbFolder = await getDatabasesPath();
-                        File source1 = File('$dbFolder/doggie_database.db');
+                        File source1 = File('$dbFolder/localDb.db');
 
                         Directory copyTo =
                             Directory("storage/emulated/0/Sqlite Backup");
@@ -203,18 +216,35 @@ class _SqfLiteDemoState extends State<SqfLiteDemo> {
                           }
                         }
 
-                        String newPath = "${copyTo.path}/doggie_database.db";
+                        String newPath = "${copyTo.path}/localDb.db";
                         await source1.copy(newPath);
 
                         setState(() {
                           // message = 'Successfully Copied DB';
                         });
                       },
-                      child: const Text('Backup Database'),
+                      child: const Text('Export Database'),
                     ),
                     MaterialButton(
-                      onPressed: () async {},
-                      child: const Text('Restore Database'),
+                      onPressed: () async {
+                        var databasesPath = await getDatabasesPath();
+                        var dbPath = join(databasesPath, 'localDb.db');
+
+                        FilePickerResult? result =
+                        await FilePicker.platform.pickFiles();
+
+                        if (result != null) {
+                          File source = File(result.files.single.path!);
+                          await source.copy(dbPath);
+                          setState(() {
+                            // message = 'Successfully Restored DB';
+                          });
+                        } else {
+                          // User canceled the picker
+
+                        }
+                      },
+                      child: const Text('Import Database'),
                     ),
                   ],
                 ),
